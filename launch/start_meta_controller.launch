@@ -21,4 +21,6 @@
           pan_controller
           "
     output="screen" />
+
+  <node name="jeeves_neck_node" pkg="jeeves_neck" type="neck_control_node.py" output="screen" />
 </launch>

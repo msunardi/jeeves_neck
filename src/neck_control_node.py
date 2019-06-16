@@ -4,9 +4,11 @@ import random as r
 import rospy
 from std_msgs.msg import Float32, Float64
 from collections import deque
-from arbotix_msgs.srv import *
+#from arbotix_msgs.srv import *
 
-from dynamixel_workbench_msgs.srv import DynamixelCommand
+#from dynamixel_workbench_msgs.srv import DynamixelCommand
+from dynamixel_controllers.srv import SetComplianceSlope, TorqueEnable
+
 
 class NeckController(threading.Thread):
     roll = 0.0
@@ -16,32 +18,48 @@ class NeckController(threading.Thread):
     def __init__(self):
         self.yaw_sub = rospy.Subscriber('/head/cmd_pose_yaw', Float32, self.yaw_callback)
         self.pitch_sub = rospy.Subscriber('/head/cmd_pose_pitch', Float32, self.pitch_callback)
-        self.pan_pub = rospy.Publisher('/head_pan_joint/command', Float64, queue_size=10)
-        self.tilt_left_pub = rospy.Publisher('/head_tilt_left_joint/command', Float64, queue_size=10)
-        self.tilt_right_pub = rospy.Publisher('/head_tilt_right_joint/command', Float64, queue_size=10)
+        self.pan_pub = rospy.Publisher('/pan_controller/command', Float64, queue_size=10)
+        self.tilt_left_pub = rospy.Publisher('/tilt_left_controller/command', Float64, queue_size=10)
+        self.tilt_right_pub = rospy.Publisher('/tilt_right_controller/command', Float64, queue_size=10)
         #self.roll_pub = rospy.Publisher('/head_roll_joint/command', Float64, queue_size=10)
 
         rospy.wait_for_service('/dynamixel_workbench/dynamixel_command')
         self.dynamixel_service = rospy.ServiceProxy('/dynamixel_workbench/dynamixel_command', DynamixelCommand)
 
-	rospy.wait_for_service('/head_pan_joint/relax')
-	rospy.wait_for_service('/head_tilt_left_joint/relax')
-	rospy.wait_for_service('/head_tilt_right_joint/relax')
-	rospy.wait_for_service('/head_pan_joint/enable')
-	rospy.wait_for_service('/head_tilt_left_joint/enable')
-	rospy.wait_for_service('/head_tilt_right_joint/enable')
-	self.head_pan_relax = rospy.ServiceProxy('/head_pan_joint/relax', Relax)
-	self.head_tilt_left_relax = rospy.ServiceProxy('/head_tilt_left_relax', Relax)
-	self.head_tilt_right_relax = rospy.ServiceProxy('/head_tilt_right_relax', Relax)
-	self.head_pan_enable = rospy.ServiceProxy('/head_pan_joint/enable', Enable)
-	self.head_tilt_left_enable = rospy.ServiceProxy('/head_tilt_left/enable', Enable)
-	self.head_tilt_right_enable = rospy.ServiceProxy('/head_tilt_right/enable', Enable)
+	#rospy.wait_for_service('/pan_controller/relax')
+	#rospy.wait_for_service('/tilt_left_controller/relax')
+	#rospy.wait_for_service('/tilt_right_controller/relax')
+	rospy.wait_for_service('/pan_controller/torque_enable')
+	rospy.wait_for_service('/tilt_left_controller/torque_enable')
+	rospy.wait_for_service('/tilt_right_controller/torque_enable')
+        rospy.wait_for_service('/pan_controller/set_compliance_slope')
+        rospy.wait_for_service('/tilt_right_controller/set_compliance_slope')
+        rospy.wait_for_service('/tilt_left_controller/set_compliance_slope')
+	#self.pan_relax = rospy.ServiceProxy('/pan_controller/relax', Relax)
+	#self.tilt_left_relax = rospy.ServiceProxy('/tilt_left_controller/relax', Relax)
+	#self.tilt_right_relax = rospy.ServiceProxy('/tilt_right_controller/relax', Relax)
+	self.pan_enable = rospy.ServiceProxy('/pan_controller/torque_enable', TorqueEnable)
+	self.tilt_left_enable = rospy.ServiceProxy('/tilt_left_controller/torque_enable', TorqueEnable)
+	self.tilt_right_enable = rospy.ServiceProxy('/tilt_right_controller/torque_enable', TorqueEnable)
+        self.pan_slope = rospy.ServiceProxy('/pan_controller/set_compliance_slope', SetComplianceSlope )
+        self.tilt_left_slope = rospy.ServiceProxy('/tilt_left_controller/set_compliance_slope', SetComplianceSlope )
+        self.titl_right_slope = rospy.ServiceProxy('/tilt_right_controller/set_compliance_slope', SetComplianceSlope )
 
         threading.Thread.__init__(self)
         self.sleeper = rospy.Rate(10)
         
+    def setSlope(self, slope=255):
+        try:
+            rospy.info("Setting controller slopes to: {}".format(slope))
+            self.pan_slope(slope)
+            self.tilt_left_slope(slope)
+            self.tilt_right_slope(slope)
+        except Exception as e:
+            rospy.logerror("Failed setting slope service. Reason: {}".format(e))
+
     def run(self):
         rospy.loginfo("Setting up neck controller...")
+        self.setSlope()
         while not rospy.is_shutdown():
             dtime = rospy.get_time() - self.then
             if dtime > 2 + r.randint(1, 5):
