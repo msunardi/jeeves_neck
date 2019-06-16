@@ -1,0 +1,7 @@
+<launch>
+  <node name="arbotix" pkg="arbotix_python" type="arbotix_driver" output="screen">
+    <rosparam file="$(find jeeves_neck)/arbotix_config.yaml" command="load" />
+  </node>
+  <!-- main node -->
+  <node name="nav_test" pkg="jeeves_neck" type="neck_control_node.py" />
+</launch>

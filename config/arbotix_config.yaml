@@ -1,0 +1,18 @@
+port: /dev/ttyUSB0
+read_rate: 15
+write_rate: 25
+rate: 100
+baudrate: 1000000
+joints: {
+    head_tilt_right_joint: {id: 1, invert: false, max_angle: 800, min_angle: 450, neutral: 512, max_speed: 80},
+    head_tilt_left_joint: {id: 2, invert: true, max_angle: 650, min_angle: 300, neutral: 512, max_speed: 80},
+    head_pan_joint: {id: 3, max_angle: 380, min_angle: 560, neutral: 512, max_speed: 60}
+}
+controllers: {
+    head_controller: {
+        type: follow_controller, 
+        joints: [head_tilt_right_joint, head_tilt_left_joint, head_pan_joint],
+        action_name: head_controller/follow_joint_trajectory,
+    }
+}
+
